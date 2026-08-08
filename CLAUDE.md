@@ -58,6 +58,31 @@ approval or human review.
   (verified 2026-08-08 by querying HAPI directly — IDs are auto-assigned
   sequentially on insert, not identical, so don't assume matching numbers).
 
+## Azure Deployment (for Workato access)
+
+Deployed 2026-08-08 since Workato is cloud-hosted and can't reach `localhost`.
+- **Resource group:** `rg-hapi-fhir-poc` (westus) — kept separate from
+  `rg-surfstack-prod` so it's easy to tear down after the demo.
+- **Container instance:** `hapi-fhir-poc`, image `hapiproject/hapi:latest`,
+  1 vCPU / 2GB RAM, port 8080, restart policy `OnFailure`.
+- **Endpoint:** `http://hapi-fhir-poc-surfstack.westus.azurecontainer.io:8080/fhir`
+  — use this in the Workato HTTP connector instead of an ngrok tunnel.
+- **Cost:** ~$0.05–0.06/hr while running. Stop between sessions with
+  `az container stop -g rg-hapi-fhir-poc -n hapi-fhir-poc`; restart with
+  `az container start -g rg-hapi-fhir-poc -n hapi-fhir-poc` (takes ~1 min to
+  boot — HAPI is a Spring Boot app).
+- **No auth, no persistent volume.** Endpoint is open to the internet (fine —
+  synthetic data only), but a container restart wipes all loaded data. Re-run
+  the load steps below after any stop/start or redeploy.
+- **Data loaded:** same three bundles, same order, as the local load above.
+  All 468 entries loaded with zero failures. **IDs differ from the local
+  instance** (separate database, sequential auto-assignment) — don't reuse
+  local IDs against this endpoint:
+  - Patient (Lavern240 Zieme486): `Patient/2277`
+  - Encounter (stroke, 2015-05-30): `Encounter/2321`
+  - ServiceRequest (MRI order, CPT 70551): `ServiceRequest/2743`
+  - DocumentReference (clinical note): `DocumentReference/2744`
+
 ## Next Step: Workato Recipe
 
 Design (not yet built):
@@ -74,10 +99,7 @@ Connectors needed: generic HTTP connector (HAPI isn't a native Workato app),
 AI connector or direct LLM API call, Microsoft Teams connector, Google
 Sheets/database for outcome logging.
 
-**Open issue:** Workato is cloud-hosted and cannot reach `localhost` — need
-either an ngrok tunnel (`ngrok http 8080`) for quick testing, or a small
-Azure-hosted instance (Azure Container Instances recommended, ~$0.06/hr,
-likely <$5 total for POC-level usage) for anything more durable.
+Endpoint reachability is resolved — see "Azure Deployment" section above.
 
 ## Business Context (for the pitch)
 
